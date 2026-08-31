@@ -1,0 +1,28 @@
+{
+  "name": "payforge",
+  "version": "1.0.0",
+  "description": "An project to learn more about payment infrastructure",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ashutosh9906/PayForge.git"
+  },
+  "author": "Gandule_D_Ashutosh",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Ashutosh9906/PayForge/issues"
+  },
+  "homepage": "https://github.com/Ashutosh9906/PayForge#readme",
+  "dependencies": {
+    "express": "^5.2.1",
+    "mysql2": "^3.24.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
