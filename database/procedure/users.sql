@@ -122,33 +122,66 @@ CREATE PROCEDURE delete_user(
 )
 BEGIN
 
-    IF NOT EXISTS (
-        SELECT 1
-        FROM users
-        WHERE id = p_id
-    ) THEN
+    DECLARE v_user_status VARCHAR(20);
 
-        SELECT
-            'USER_NOT_FOUND' AS result;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
 
-    ELSEIF EXISTS (
-        SELECT 1
-        FROM users
-        WHERE id = p_id
-          AND status = 'DELETED'
-    ) THEN
+    START TRANSACTION;
 
-        SELECT
-            'USER_ALREADY_DELETED' AS result;
+    /*
+        Lock the user row.
 
+        This is important because another operation such as
+        create_account() should not be able to simultaneously
+        modify the user's account state while deletion is happening.
+    */
+    SET v_user_status = NULL;
+
+    SELECT status
+    INTO v_user_status
+    FROM users
+    WHERE id = p_id
+    FOR UPDATE;
+
+    /*
+        User does not exist
+    */
+    IF v_user_status IS NULL THEN
+
+        ROLLBACK;
+
+        SELECT 'USER_NOT_FOUND' AS result;
+
+    /*
+        User already deleted
+    */
+    ELSEIF v_user_status = 'DELETED' THEN
+
+        ROLLBACK;
+
+        SELECT 'USER_ALREADY_DELETED' AS result;
+
+    /*
+        User is active
+    */
     ELSE
 
         UPDATE users
         SET status = 'DELETED'
         WHERE id = p_id;
 
-        SELECT
-            'USER_DELETED' AS result;
+        UPDATE accounts
+        SET status = 'CLOSED'
+        WHERE user_id = p_id
+          AND status IN ('ACTIVE', 'FROZEN');
+
+        COMMIT;
+
+        SELECT 'USER_DELETED' AS result;
 
     END IF;
 
