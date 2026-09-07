@@ -1,190 +1,143 @@
+CREATE DATABASE IF NOT EXISTS payment_platform;
+
 USE payment_platform;
 
--- Procedure to add new user to the database
-DROP PROCEDURE IF EXISTS create_user;
 
-DELIMITER //
+-- =========================================================
+-- USERS
+-- =========================================================
 
-CREATE PROCEDURE create_user(
-    IN p_name VARCHAR(100),
-    IN p_email VARCHAR(255)
-)
-BEGIN
+CREATE TABLE users (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
 
-    INSERT INTO users (
-        name,
-        email
-    )
-    VALUES (
-        p_name,
-        p_email
-    );
+    name VARCHAR(100) NOT NULL,
 
-    SELECT
-        id,
-        name,
-        email,
-        status,
-        created_at
-    FROM users
-    WHERE id = LAST_INSERT_ID();
+    email VARCHAR(255) NOT NULL UNIQUE,
 
-END //
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 
-DELIMITER ;
 
--- Procedure to get teh user by ID
-DROP PROCEDURE IF EXISTS get_user_by_id;
+-- =========================================================
+-- ACCOUNTS
+-- =========================================================
 
-DELIMITER //
+CREATE TABLE accounts (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
 
-CREATE PROCEDURE get_user_by_id(
-    IN p_id BIGINT UNSIGNED
-)
-BEGIN
+    user_id BIGINT UNSIGNED NOT NULL,
 
-    SELECT
-        id,
-        name,
-        email,
-        status,
-        created_at
-    FROM users
-    WHERE id = p_id
-      AND status = 'ACTIVE';
+    balance DECIMAL(19,2) NOT NULL DEFAULT 0.00,
 
-END //
+    currency CHAR(3) NOT NULL,
 
-DELIMITER ;
+    status ENUM('ACTIVE', 'FROZEN', 'CLOSED')
+        NOT NULL DEFAULT 'ACTIVE',
 
--- Procedure for get all usre 
-DROP PROCEDURE IF EXISTS get_all_users;
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-DELIMITER //
+    updated_at TIMESTAMP NOT NULL
+        DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
 
-CREATE PROCEDURE get_all_users()
-BEGIN
+    CONSTRAINT fk_accounts_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(id),
 
-    SELECT
-        id,
-        name,
-        email,
-        status,
-        created_at
-    FROM users
-    WHERE status = 'ACTIVE'
-    ORDER BY id;
+    CONSTRAINT chk_account_non_negative_balance
+        CHECK (balance >= 0.00)
+);
 
-END //
 
-DELIMITER ;
+-- =========================================================
+-- TRANSACTIONS
+-- =========================================================
 
--- Upadte user information like name or email
-DROP PROCEDURE IF EXISTS update_user;
+CREATE TABLE transactions (
+    id VARCHAR(50) PRIMARY KEY,
 
-DELIMITER //
+    idempotency_key VARCHAR(100) NOT NULL UNIQUE,
 
-CREATE PROCEDURE update_user(
-    IN p_id BIGINT UNSIGNED,
-    IN p_name VARCHAR(100),
-    IN p_email VARCHAR(255)
-)
-BEGIN
+    request_hash CHAR(64) NOT NULL,
 
-    UPDATE users
-    SET
-        name = p_name,
-        email = p_email
-    WHERE id = p_id
-      AND status = 'ACTIVE';
+    source_account_id BIGINT UNSIGNED NOT NULL,
 
-    SELECT
-        id,
-        name,
-        email,
-        status,
-        created_at
-    FROM users
-    WHERE id = p_id
-      AND status = 'ACTIVE';
+    destination_account_id BIGINT UNSIGNED NOT NULL,
 
-END //
+    amount DECIMAL(19,2) NOT NULL,
 
-DELIMITER ;
+    currency CHAR(3) NOT NULL,
 
--- To soft delete teh user by giving status DELETEd
-DROP PROCEDURE IF EXISTS delete_user;
+    status ENUM('PENDING', 'COMPLETED', 'FAILED')
+        NOT NULL DEFAULT 'PENDING',
 
-DELIMITER //
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-CREATE PROCEDURE delete_user(
-    IN p_id BIGINT UNSIGNED
-)
-BEGIN
+    updated_at TIMESTAMP NOT NULL
+        DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
 
-    DECLARE v_user_status VARCHAR(20);
+    CONSTRAINT fk_transactions_source_account
+        FOREIGN KEY (source_account_id)
+        REFERENCES accounts(id),
 
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
+    CONSTRAINT fk_transactions_destination_account
+        FOREIGN KEY (destination_account_id)
+        REFERENCES accounts(id),
 
-    START TRANSACTION;
+    CONSTRAINT chk_transaction_different_accounts
+        CHECK (source_account_id <> destination_account_id),
 
-    /*
-        Lock the user row.
+    CONSTRAINT chk_transaction_positive_amount
+        CHECK (amount > 0.00)
+);
 
-        This is important because another operation such as
-        create_account() should not be able to simultaneously
-        modify the user's account state while deletion is happening.
-    */
-    SET v_user_status = NULL;
 
-    SELECT status
-    INTO v_user_status
-    FROM users
-    WHERE id = p_id
-    FOR UPDATE;
+-- =========================================================
+-- LEDGER ENTRIES
+-- =========================================================
 
-    /*
-        User does not exist
-    */
-    IF v_user_status IS NULL THEN
+CREATE TABLE ledger_entries (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
 
-        ROLLBACK;
+    transaction_id VARCHAR(50) NOT NULL,
 
-        SELECT 'USER_NOT_FOUND' AS result;
+    account_id BIGINT UNSIGNED NOT NULL,
 
-    /*
-        User already deleted
-    */
-    ELSEIF v_user_status = 'DELETED' THEN
+    amount DECIMAL(19,2) NOT NULL,
 
-        ROLLBACK;
+    entry_type ENUM('DEBIT', 'CREDIT') NOT NULL,
 
-        SELECT 'USER_ALREADY_DELETED' AS result;
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    /*
-        User is active
-    */
-    ELSE
+    CONSTRAINT fk_ledger_transaction
+        FOREIGN KEY (transaction_id)
+        REFERENCES transactions(id),
 
-        UPDATE users
-        SET status = 'DELETED'
-        WHERE id = p_id;
+    CONSTRAINT fk_ledger_account
+        FOREIGN KEY (account_id)
+        REFERENCES accounts(id),
 
-        UPDATE accounts
-        SET status = 'CLOSED'
-        WHERE user_id = p_id
-          AND status IN ('ACTIVE', 'FROZEN');
+    CONSTRAINT chk_ledger_positive_amount
+        CHECK (amount > 0.00)
+);
 
-        COMMIT;
 
-        SELECT 'USER_DELETED' AS result;
+-- =========================================================
+-- INDEXES
+-- =========================================================
 
-    END IF;
+CREATE INDEX idx_transactions_source_account
+    ON transactions(source_account_id);
 
-END //
+CREATE INDEX idx_transactions_destination_account
+    ON transactions(destination_account_id);
 
-DELIMITER ;
+CREATE INDEX idx_transactions_request_hash
+    ON transactions(request_hash);
+
+CREATE INDEX idx_ledger_account
+    ON ledger_entries(account_id);
+
+CREATE INDEX idx_ledger_account_created
+    ON ledger_entries(account_id, created_at);
