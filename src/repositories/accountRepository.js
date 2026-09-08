@@ -13,18 +13,19 @@ export async function findAccountForUpdate(connection, accountIds){
     return rows;
 }
 
-export async function debit(connection, accountId, amount){
+export async function debit(connection, accountId, amount) {
     const [result] = await connection.query(
         `
         UPDATE accounts
         SET balance = balance - ?
         WHERE id = ?
+          AND balance >= ?
         `,
-        [amount, accountId]
-    )
+        [amount, accountId, amount]
+    );
 
     return result;
-} 
+}
 
 export async function credit(connection, accountId, amount){
     const [result] = await connection.query(

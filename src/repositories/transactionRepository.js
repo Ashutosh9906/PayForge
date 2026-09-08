@@ -19,7 +19,7 @@ export async function create(connection, transaction) {
         `,
         [
             transaction.id, 
-            transaction.idempotencykey, 
+            transaction.idempotencyKey, 
             transaction.requestHash, 
             transaction.sourceAccountId, 
             transaction.destinationAccountId, 

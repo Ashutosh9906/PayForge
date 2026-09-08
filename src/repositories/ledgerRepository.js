@@ -1,4 +1,4 @@
-export async function createEntry(connection, entry){
+async function createEntry(connection, entry){
     const [result] = await connection.query(
         `
         INSERT INTO ledger_entries (transaction_id, account_id, amount, entry_type)
