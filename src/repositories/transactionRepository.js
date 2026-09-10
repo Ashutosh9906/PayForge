@@ -1,7 +1,7 @@
 export async function findByIdempotencyKey(connection, idempotencykey) {
     const [result] = await connection.query(
         `
-        SELECT id, idempotency_key, source_account_id, destination_account_id, amount, currency, status, created_at, updated_at
+        SELECT id, idempotency_key, request_hash, source_account_id, destination_account_id, amount, currency, status, created_at, updated_at
         FROM transactions
         WHERE idempotency_key = ?
         `,
@@ -19,7 +19,7 @@ export async function create(connection, transaction) {
         `,
         [
             transaction.id, 
-            transaction.idempotencyey, 
+            transaction.idempotencyKey, 
             transaction.requestHash, 
             transaction.sourceAccountId, 
             transaction.destinationAccountId, 

@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { normalizeAmount } from "./money";
+import { normalizeAmount } from "./money.js";
 
 export function generateRequestHash(paymentData) {
     const normalizedAmount = normalizeAmount(paymentData.amount);

@@ -13,12 +13,16 @@ const errorHandling = (err, req, res, next) => {
         ? err.code
         : "INTERNAL_SERVER_ERROR";
 
+    const data = err.isOperational
+        ? err.details ?? null
+        : null;
+
     return handleResponse(
         res,
         statusCode,
         message,
         false,
-        null,
+        data,
         code
     );
 };

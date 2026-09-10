@@ -26,42 +26,32 @@ export async function createPayment(paymentData) {
         const transactionId = generateTransactionId();
         const normalizedCurrency = paymentData.currency.toUpperCase();
 
-        const transaction = {
-            id: transactionId,
-            idempotencyKey: paymentData.idempotencyKey,
-            requestHash,
-            sourceAccountId: paymentData.sourceAccountId,
-            destinationAccountId: paymentData.destinationAccountId,
-            amount: paymentData.amount,
-            currency: normalizedCurrency,
-            status: "PENDING"
-        };
+        const existingTransaction = await transactionRepository.findByIdempotencyKey(
+            connection,
+            paymentData.idempotencyKey
+        );
 
-        try {
-            await transactionRepository.create(connection, transaction);
-        } catch (error) {
-            if (error.code !== "ER_DUP_ENTRY") {
-                throw error;
-            }
-
-            const existingTransaction = await transactionRepository.findByIdempotencyKey(connection, paymentData.idempotencyKey);
-
-            if (!existingTransaction) {
-                throw error;
-            }
-
+        if (existingTransaction) {
             if (existingTransaction.request_hash !== requestHash) {
                 throw new AppError(
                     "Idempotency key was already used with a different request",
                     409,
                     "IDEMPOTENCY_KEY_CONFLICT"
-                )
+                );
             }
 
             return {
                 transaction: existingTransaction,
                 idempotent: true
             };
+        }
+
+        if (paymentData.sourceAccountId === paymentData.destinationAccountId) {
+            throw new AppError(
+                "Source and destination accounts must be different",
+                400,
+                "SAME_ACCOUNT_TRANSFER"
+            );
         }
 
         try {
@@ -88,6 +78,52 @@ export async function createPayment(paymentData) {
             const destinationAccount = accounts.find(
                 account => account.id === paymentData.destinationAccountId
             );
+
+            const transaction = {
+                id: transactionId,
+                idempotencyKey: paymentData.idempotencyKey,
+                requestHash,
+                sourceAccountId: paymentData.sourceAccountId,
+                destinationAccountId: paymentData.destinationAccountId,
+                amount: paymentData.amount,
+                currency: normalizedCurrency,
+                status: "PENDING"
+            };
+
+            try {
+                await transactionRepository.create(
+                    connection,
+                    transaction
+                );
+            } catch (error) {
+                if (error.code !== "ER_DUP_ENTRY") {
+                    throw error;
+                }
+
+                const concurrentTransaction =
+                    await transactionRepository.findByIdempotencyKey(
+                        connection,
+                        paymentData.idempotencyKey
+                    );
+
+                if (!concurrentTransaction) {
+                    throw error;
+                }
+
+                if (concurrentTransaction.request_hash !== requestHash) {
+                    throw new AppError(
+                        "Idempotency key was already used with a different request",
+                        409,
+                        "IDEMPOTENCY_KEY_CONFLICT"
+                    );
+                }
+
+                return {
+                    transaction: concurrentTransaction,
+                    idempotent: true
+                };
+            }
+
 
             if (sourceAccount.status !== "ACTIVE") {
                 throw new AppError(
@@ -176,7 +212,7 @@ export async function createPayment(paymentData) {
                 transaction: completedTransaction,
                 idempotent: false
             };
-            
+
         } catch (error) {
             if (
                 error instanceof AppError &&

@@ -4,9 +4,10 @@ import express from "express";
 const app = express();
 
 //Custom made imports
-import errorHandling from "./middlewares/errorHandling.js";
+import errorHandling from "./middlewares/errorHandlingMiddleware.js";
 import userRoutes from "./routes/userRoutes.js";
 import accountRoutes from "./routes/accountRoutes.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
 import devRoutes from "./routes/devRoutes.js";
 
 //middlewares
@@ -15,6 +16,7 @@ app.use(express.json());
 //Custom routes
 app.use("/users", userRoutes);
 app.use("/accounts", accountRoutes);
+app.use("/payments", paymentRoutes);
 app.use("/dev", devRoutes);
 
 //central error handling middleware
