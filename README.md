@@ -11,3 +11,9 @@ insufficient funds → INSUFFICIENT_BALANCE
 frozen account     → ACCOUNT_FROZEN
 ...
 ```
+```
+1. Unit Tesiting script
+2. Itegeration tesitng script
+3. Testing frameworks
+4. Audit Trails observability
+```
