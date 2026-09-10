@@ -66,4 +66,4 @@ const paymentBodySchema = z.object({
 export const paymentSchema = z.object({
   body: paymentBodySchema,
   headers: paymentHeaderSchema
-}).strict();
+});

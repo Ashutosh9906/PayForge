@@ -4,18 +4,7 @@ import handleResponse from "../utils/handleResponse.js";
 
 export const createUser = async (req, res, next) => {
     try {
-        const { name, email } = req.body || {};
-
-        if (!name || !email) {
-            return handleResponse(
-                res,
-                400,
-                "Name and email are required",
-                false,
-                null,
-                "INVALID_REQUEST"
-            );
-        }
+        const { name, email } = res.locals.validated.body || {};
 
         const [result] = await db.query(
             "CALL create_user(?, ?)",
@@ -105,19 +94,8 @@ export const getUserById = async (req, res, next) => {
 
 export const updateUser = async (req, res, next) => {
     try {
-        const { id } = req.params;
-        const { name, email } = req.body || {};
-
-        if (!name || !email) {
-            return handleResponse(
-                res,
-                400,
-                "Name and email are required",
-                false,
-                null,
-                "INVALID_REQUEST"
-            );
-        }
+        const { id } = res.locals.validated.params;
+        const { name, email } = res.locals.validated.body || {};
 
         const [result] = await db.query(
             "CALL update_user(?, ?, ?)",
