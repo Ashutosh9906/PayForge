@@ -1,7 +1,8 @@
 import crypto from "crypto";
+import { normalizeAmount } from "./money";
 
 export function generateRequestHash(paymentData) {
-    const normalizedAmount = Number(paymentData.amount).toFixed(2);
+    const normalizedAmount = normalizeAmount(paymentData.amount);
 
     const data = [
         paymentData.sourceAccountId,

@@ -19,7 +19,7 @@ export async function create(connection, transaction) {
         `,
         [
             transaction.id, 
-            transaction.idempotencyKey, 
+            transaction.idempotencyey, 
             transaction.requestHash, 
             transaction.sourceAccountId, 
             transaction.destinationAccountId, 
@@ -32,12 +32,13 @@ export async function create(connection, transaction) {
     return result;
 }
 
-export async function markCompleted(connection, transactionId){
+export async function markCompleted(connection, transactionId) {
     const [result] = await connection.query(
         `
         UPDATE transactions
         SET status = 'COMPLETED'
         WHERE id = ?
+          AND status = 'PENDING'
         `,
         [transactionId]
     );
@@ -45,12 +46,13 @@ export async function markCompleted(connection, transactionId){
     return result;
 }
 
-export async function markFailed(connection, transactionId){
+export async function markFailed(connection, transactionId) {
     const [result] = await connection.query(
         `
         UPDATE transactions
         SET status = 'FAILED'
         WHERE id = ?
+          AND status = 'PENDING'
         `,
         [transactionId]
     );
