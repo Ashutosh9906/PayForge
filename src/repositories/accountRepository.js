@@ -39,3 +39,15 @@ export async function credit(connection, accountId, amount){
 
     return result;
 }
+
+export async function findById(connection, accountId){
+    const [result] = await connection.query(
+        `
+        SELECT * FROM accounts
+        WHERE id = ?
+        `,
+        [accountId]
+    );
+
+    return result;
+}

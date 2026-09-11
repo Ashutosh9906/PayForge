@@ -72,3 +72,30 @@ export async function findById(connection, transactionId){
 
     return result[0] || null;
 }
+
+export async function findAllByAccountId(connection, accountId) {
+    const [result] = await connection.query(
+        `
+        SELECT
+            id,
+            source_account_id,
+            destination_account_id,
+            amount,
+            currency,
+            status,
+            CASE
+                WHEN source_account_id = ? THEN 'DEBIT'
+                WHEN destination_account_id = ? THEN 'CREDIT'
+            END AS transaction_type,
+            created_at,
+            updated_at
+        FROM transactions
+        WHERE source_account_id = ?
+           OR destination_account_id = ?
+        ORDER BY created_at DESC
+        `,
+        [accountId, accountId, accountId, accountId]
+    );
+
+    return result;
+}

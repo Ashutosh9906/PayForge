@@ -1,7 +1,7 @@
-import { createPayment } from "../services/paymentService.js";
+import { createPayment, getAccountTransactions, getPayment } from "../services/paymentService.js";
 import handleResponse from "../utils/handleResponse.js";
 
-export async function createPaymentController(req, res, next){
+export async function createPaymentController(req, res, next) {
     try {
         const idempotencyKey = res.locals.validated.headers["idempotency-key"];
         // console.log(idempotencyKey);
@@ -22,6 +22,45 @@ export async function createPaymentController(req, res, next){
             "Payment created successfully",
             true,
             result
+        );
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function getTransactionController(req, res, next) {
+    try {
+        const { transactionId } = res.locals.validated.params;
+
+        const transaction = await getPayment(transactionId);
+
+        return handleResponse(
+            res,
+            200,
+            "Payment retrieved successfully",
+            true,
+            transaction,
+            "PAYMENT_RETRIEVED"
+        );
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function getAccountTransactionsController(req, res, next) {
+    try {
+        const accountId = res.locals.validated.params.id;
+
+        const transactions =
+            await getAccountTransactions(accountId);
+
+        return handleResponse(
+            res,
+            200,
+            "Account transactions retrieved successfully",
+            true,
+            transactions,
+            "TRANSACTIONS_RETRIEVED"
         );
     } catch (error) {
         next(error);

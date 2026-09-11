@@ -63,7 +63,30 @@ const paymentBodySchema = z.object({
         ),
 }).strict();
 
-export const paymentSchema = z.object({
+const transactionIdParams = z.object({
+    transactionId: z
+        .string({
+            error: "Transaction ID is required",
+        })
+        .min(1, "Transaction ID cannot be empty")
+        .refine(
+            (value) => {
+                if (!value.startsWith("txn_")) return false;
+
+                const uuid = value.slice(4);
+                return z.uuid().safeParse(uuid).success;
+            },
+            {
+                error: "Transaction ID must be in the format txn_<valid UUID>",
+            }
+        ),
+});
+
+export const createPaymentSchema = z.object({
   body: paymentBodySchema,
   headers: paymentHeaderSchema
+});
+
+export const getTransactionSchema = z.object({
+  params: transactionIdParams
 });

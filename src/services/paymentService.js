@@ -244,3 +244,63 @@ export async function createPayment(paymentData) {
         connection.release();
     }
 }
+
+export async function getPayment(transactionId) {
+    const connection = await db.getConnection();
+
+    try {
+        const transaction = await transactionRepository.findById(
+            connection,
+            transactionId
+        );
+
+        if (!transaction) {
+            throw new AppError(
+                "Payment not found",
+                404,
+                "PAYMENT_NOT_FOUND"
+            );
+        }
+
+        return transaction;
+    } finally {
+        connection.release();
+    }
+}
+
+export async function getAccountTransactions(accountId) {
+    const connection = await db.getConnection();
+
+    try {
+        const account = await accountRepository.findById(
+            connection,
+            accountId
+        );
+
+        if (account.length <= 0) {
+            throw new AppError(
+                "Account not found",
+                404,
+                "ACCOUNT_NOT_FOUND"
+            );
+        }
+
+        if (account.status === "CLOSED") {
+            throw new AppError(
+                "Transaction history is not available for a closed account",
+                403,
+                "ACCOUNT_CLOSED"
+            );
+        }
+
+        const transactions =
+            await transactionRepository.findAllByAccountId(
+                connection,
+                accountId
+            );
+
+        return transactions;
+    } finally {
+        connection.release();
+    }
+}
