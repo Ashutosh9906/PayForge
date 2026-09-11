@@ -60,7 +60,7 @@ export const getAllUsers = async (req, res, next) => {
 
 export const getUserById = async (req, res, next) => {
     try {
-        const { id } = req.params;
+        const { id } = res.locals.validated.params;
 
         const [result] = await db.query(
             "CALL get_user_by_id(?)",
@@ -140,7 +140,7 @@ export const updateUser = async (req, res, next) => {
 
 export const deleteUser = async (req, res, next) => {
     try {
-        const { id } = req.params;
+        const { id } = res.locals.validated.params;
 
         const [result] = await db.query(
             "CALL delete_user(?)",

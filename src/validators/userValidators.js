@@ -13,7 +13,13 @@ const UserInfoBody = z.object({
 }).strict();
 
 const userIdParams = z.object({
-    id: z.coerce.number().int().positive("ID must be a positive number"),
+    id: z
+        .coerce
+        .number({
+            error: "account_id is required and must be a number",
+        })
+        .int("account_id must be an integer")
+        .positive("account_id must be greater than 0"),
 }).strict();
 
 export const createUserSchema = z.object({
@@ -29,3 +35,6 @@ export const deleteUserSchema = z.object({
     params: userIdParams
 });
 
+export const getUserSchema = z.object({
+    params: userIdParams
+});

@@ -4,7 +4,7 @@ import handleResponse from "../utils/handleResponse.js";
 
 export const createAccount = async (req, res, next) => {
     try {
-        const { user_id, currency } = req.body || {};
+        const { user_id, currency } = res.locals.validated.body || {};
 
         // Basic request validation
         if (!user_id || !currency) {
@@ -71,7 +71,7 @@ export const createAccount = async (req, res, next) => {
 
 export const getAccountById = async (req, res, next) => {
     try {
-        const { id } = req.params;
+        const { id } = res.locals.validated.params;
 
         const [result] = await db.query(
             "CALL get_account_by_id(?)",
@@ -120,7 +120,7 @@ export const getAccountById = async (req, res, next) => {
 
 export const getAccountByUserId = async (req, res, next) => {
     try {
-        const { id } = req.params;
+        const { id } = res.locals.validated.params;
 
         const [result] = await db.query(
             "CALL get_accounts_by_user_id(?)",
@@ -174,8 +174,8 @@ export const getAccountByUserId = async (req, res, next) => {
 
 export const accountAction = async (req, res, next) => {
     try {
-        const { id } = req.params;
-        const { action } = req.body || {};
+        const { id } = res.locals.validated.params;
+        const { action } = res.locals.validated.body || {};
 
         // Basic request validation
         if (!action) {
