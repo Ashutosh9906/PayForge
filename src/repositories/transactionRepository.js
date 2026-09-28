@@ -99,3 +99,15 @@ export async function findAllByAccountId(connection, accountId) {
 
     return result;
 }
+
+export async function findTransactionForReconciliation(
+    connection,
+    transactionId
+) {
+    const [result] = await connection.query(
+        `CALL reconcile_transaction(?)`,
+        [transactionId]
+    );
+
+    return result[0][0] || null;
+}

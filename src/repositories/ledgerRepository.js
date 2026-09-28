@@ -25,3 +25,23 @@ export async function createEntries(connection, entries) {
 
     return result;
 }
+
+export async function findByTransactionId(connection, transactionId) {
+    const [result] = await connection.query(
+        `
+        SELECT
+            id,
+            transaction_id,
+            account_id,
+            amount,
+            entry_type,
+            created_at
+        FROM ledger_entries
+        WHERE transaction_id = ?
+        ORDER BY created_at ASC
+        `,
+        [transactionId]
+    );
+
+    return result;
+}
